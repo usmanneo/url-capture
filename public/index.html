@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Capture</title>
+</head>
+<body>
+  <form id="urlForm">
+    <input type="text" id="originalUrl" placeholder="Enter URL" required>
+    <button type="submit">Generate Link</button>
+  </form>
+  <div id="result"></div>
+  <script>
+    document.getElementById('urlForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const originalUrl = document.getElementById('originalUrl').value;
+      const response = await fetch('/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ originalUrl })
+      });
+      const result = await response.json();
+      document.getElementById('result').innerText = `New Link: ${result.newUrl}`;
+    });
+  </script>
+</body>
+</html>
