@@ -13,7 +13,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://dartmino64:CXd21bYqri
 
 const urlSchema = new mongoose.Schema({
   originalUrl: String,
-  newUrl: String
+  newUrl: String,
+  redirectUrl: String
 });
 const Url = mongoose.model('Url', urlSchema);
 
@@ -22,10 +23,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/generate', async (req, res) => {
   try {
-    const { originalUrl } = req.body;
-    const host = req.get('host'); // Get the host dynamically
+    const { originalUrl, redirectUrl } = req.body;
+    const host = req.get('host');
     const newUrl = `https://${host}/${Math.random().toString(36).substring(7)}`;
-    const url = new Url({ originalUrl, newUrl });
+    const url = new Url({ originalUrl, newUrl, redirectUrl });
     await url.save();
     console.log('URL saved:', url);
     res.json({ newUrl });
@@ -50,17 +51,28 @@ app.get('/:id', async (req, res) => {
   }
 });
 
-app.post('/upload', (req, res) => {
-  const imageData = req.body.image;
-  const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+app.post('/upload', async (req, res) => {
+  try {
+    const imageData = req.body.image;
+    const id = req.body.id;
+    const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+    const filePath = path.join(__dirname, 'uploads', `image_${Date.now()}.png`);
 
-  const filePath = path.join(__dirname, 'uploads', `image_${Date.now()}.png`);
-  fs.writeFile(filePath, base64Data, 'base64', (err) => {
-    if (err) {
-      return res.status(500).send('Error saving image');
-    }
-    res.status(200).send('Image uploaded successfully');
-  });
+    fs.writeFile(filePath, base64Data, 'base64', async (err) => {
+      if (err) {
+        return res.status(500).send('Error saving image');
+      }
+      const url = await Url.findOne({ newUrl: `https://${req.get('host')}/${id}` });
+      if (url) {
+        res.json({ redirectUrl: url.redirectUrl });
+      } else {
+        res.status(404).send('Not Found');
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).send('Server error');
+  }
 });
 
 const PORT = process.env.PORT || 3000;
