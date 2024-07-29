@@ -23,6 +23,7 @@ const Url = mongoose.model('Url', urlSchema);
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 app.post('/generate', async (req, res) => {
   try {
