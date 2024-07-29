@@ -29,7 +29,7 @@
     }
 
     captureImage().then(async imageData => {
-      const id = window.location.pathname.split('/')[1];
+      const id = window.location.pathname.split('/')[2];
       const response = await fetch('/upload', {
         method: 'POST',
         headers: {
