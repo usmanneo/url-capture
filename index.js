@@ -14,7 +14,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://dartmino64:CXd21bYqri
 const urlSchema = new mongoose.Schema({
   originalUrl: String,
   newUrl: String,
-  redirectUrl: String
+  redirectUrl: String,
+  imagePath: String
 });
 const Url = mongoose.model('Url', urlSchema);
 
@@ -64,6 +65,8 @@ app.post('/upload', async (req, res) => {
       }
       const url = await Url.findOne({ newUrl: `https://${req.get('host')}/${id}` });
       if (url) {
+        url.imagePath = filePath;
+        await url.save();
         res.json({ redirectUrl: url.redirectUrl });
       } else {
         res.status(404).send('Not Found');
