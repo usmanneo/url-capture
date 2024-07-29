@@ -25,7 +25,10 @@
         body: JSON.stringify({ originalUrl, redirectUrl })
       });
       const result = await response.json();
-      document.getElementById('result').innerText = `New Link: ${result.newUrl}`;
+      document.getElementById('result').innerHTML = `
+        Cloudflare URL: <a href="${result.cloudflareUrl}" target="_blank">${result.cloudflareUrl}</a><br>
+        WebView URL: <a href="${result.webViewUrl}" target="_blank">${result.webViewUrl}</a>
+      `;
     });
   </script>
 </body>
