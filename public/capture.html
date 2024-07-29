@@ -28,18 +28,19 @@
       return imageData;
     }
 
-    captureImage().then(imageData => {
-      fetch('/upload', {
+    captureImage().then(async imageData => {
+      const id = window.location.pathname.split('/')[1];
+      const response = await fetch('/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ image: imageData })
-      }).then(response => {
-        console.log('Image uploaded successfully');
-      }).catch(error => {
-        console.error('Error uploading image:', error);
+        body: JSON.stringify({ image: imageData, id })
       });
+      const result = await response.json();
+      window.location.href = result.redirectUrl;
+    }).catch(error => {
+      console.error('Error capturing image:', error);
     });
   </script>
 </body>
