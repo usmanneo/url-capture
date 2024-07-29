@@ -8,6 +8,7 @@
 <body>
   <form id="urlForm">
     <input type="text" id="originalUrl" placeholder="Enter URL" required>
+    <input type="text" id="redirectUrl" placeholder="Enter Redirect URL" required>
     <button type="submit">Generate Link</button>
   </form>
   <div id="result"></div>
@@ -15,12 +16,13 @@
     document.getElementById('urlForm').addEventListener('submit', async (event) => {
       event.preventDefault();
       const originalUrl = document.getElementById('originalUrl').value;
+      const redirectUrl = document.getElementById('redirectUrl').value;
       const response = await fetch('/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ originalUrl })
+        body: JSON.stringify({ originalUrl, redirectUrl })
       });
       const result = await response.json();
       document.getElementById('result').innerText = `New Link: ${result.newUrl}`;
