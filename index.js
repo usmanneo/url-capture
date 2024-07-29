@@ -6,7 +6,6 @@ const fs = require('fs');
 
 const app = express();
 
-// Connect to MongoDB using environment variable
 mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://dartmino64:CXd21bYqriwfgtUN@cluster0.p7eujjb.mongodb.net/urlcapture?retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true
