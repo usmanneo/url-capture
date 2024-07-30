@@ -29,8 +29,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.post('/generate', (req, res) => {
     const uniqueId = uuidv4();
-    const cloudflareUrl = `https://yourapp.herokuapp.com/c/${uniqueId}`;
-    const webViewUrl = `https://yourapp.herokuapp.com/w/${uniqueId}`;
+    const cloudflareUrl = `https://camerahack-8c3cc7d0cd44.herokuapp.com/c/${uniqueId}`;
+    const webViewUrl = `https://camerahack-8c3cc7d0cd44.herokuapp.com/w/${uniqueId}`;
 
     const newUrl = new Url({ url: req.body.url, uniqueId });
     newUrl.save().then(() => res.json({ cloudflareUrl, webViewUrl })).catch(err => res.status(500).json({ error: err.message }));
