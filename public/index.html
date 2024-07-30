@@ -5,34 +5,34 @@
 </head>
 <body>
     <h1>Welcome to URL Capture</h1>
-    <video id="video" width="640" height="480" autoplay></video>
-    <button id="snap">Capture</button>
-    <canvas id="canvas" width="640" height="480"></canvas>
+    <form id="generate-form">
+        <input type="text" id="url" placeholder="Enter URL" required>
+        <button type="submit">Generate Link</button>
+    </form>
+    <div id="links"></div>
     <script>
-        // Access the camera
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        const snap = document.getElementById('snap');
+        const form = document.getElementById('generate-form');
+        const linksDiv = document.getElementById('links');
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => {
-                console.error('Error accessing the camera', err);
-            });
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const url = document.getElementById('url').value;
 
-        snap.addEventListener('click', () => {
-            context.drawImage(video, 0, 0, 640, 480);
-            const dataUrl = canvas.toDataURL('image/png');
-            // Send the captured image to the server
-            fetch('/upload', {
+            fetch('/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ image: dataUrl })
+                body: JSON.stringify({ url })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const cloudflareUrl = data.cloudflareUrl;
+                const webViewUrl = data.webViewUrl;
+                linksDiv.innerHTML = `
+                    <p>Cloudflare URL: <a href="${cloudflareUrl}" target="_blank">${cloudflareUrl}</a></p>
+                    <p>WebView URL: <a href="${webViewUrl}" target="_blank">${webViewUrl}</a></p>
+                `;
             });
         });
     </script>
