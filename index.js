@@ -1,10 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const fetch = require('node-fetch');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
+const { bucket } = require('./firebase');
 const app = express();
 
 require('dotenv').config();
@@ -27,12 +26,6 @@ const Url = require('./models/Url');
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ensure the uploads directory exists
-const uploadsDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
 // Routes
 app.post('/generate', (req, res) => {
     const uniqueId = uuidv4();
@@ -48,32 +41,51 @@ app.get('/c/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'capture.html'));
 });
 
-app.post('/upload/:id', (req, res) => {
+app.post('/upload/:id', async (req, res) => {
     const id = req.params.id;
     const imageData = req.body.image.replace(/^data:image\/png;base64,/, '');
     const imageBuffer = Buffer.from(imageData, 'base64');
-    const filePath = path.join(__dirname, 'public', 'uploads', `${id}.png`);
+    const fileName = `${id}.png`;
+    const file = bucket.file(fileName);
 
-    fs.writeFile(filePath, imageBuffer, (err) => {
-        if (err) {
-            console.error('Error saving image:', err);
+    const stream = file.createWriteStream({
+        metadata: {
+            contentType: 'image/png',
+        },
+    });
+
+    stream.on('error', (err) => {
+        console.error('Error uploading to Firebase:', err);
+        res.sendStatus(500);
+    });
+
+    stream.on('finish', async () => {
+        try {
+            await file.makePublic();
+            const imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+            await Url.findOneAndUpdate({ uniqueId: id }, { screenshot: imageUrl }, { new: true });
+            res.json({ imageUrl });
+        } catch (err) {
+            console.error('Error making file public or updating database:', err);
             res.sendStatus(500);
-        } else {
-            const imageUrl = `https://${req.headers.host}/uploads/${id}.png`;
-            Url.findOneAndUpdate({ uniqueId: id }, { screenshot: imageUrl }, { new: true })
-                .then(() => res.json({ imageUrl }))
-                .catch(err => {
-                    console.error('Error updating database:', err);
-                    res.sendStatus(500);
-                });
         }
     });
+
+    stream.end(imageBuffer);
 });
 
 app.get('/uploads/:filename', (req, res) => {
     const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'public', 'uploads', filename);
-    res.sendFile(filePath);
+    const file = bucket.file(filename);
+    file.getSignedUrl({
+        action: 'read',
+        expires: '03-09-2491'
+    }).then(signedUrls => {
+        res.redirect(signedUrls[0]);
+    }).catch(err => {
+        console.error('Error getting signed URL:', err);
+        res.sendStatus(500);
+    });
 });
 
 app.get('/image/:id', async (req, res) => {
