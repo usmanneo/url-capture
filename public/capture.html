@@ -31,6 +31,7 @@
                           .then(data => {
                               if (data.imageUrl) {
                                   const imageUrl = data.imageUrl;
+                                  console.log('Received Image URL:', imageUrl); // Debug log
                                   window.location.href = `${originalUrl}?image=${encodeURIComponent(imageUrl)}`;
                               } else {
                                   console.error('Error: No imageUrl received.');
