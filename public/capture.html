@@ -27,9 +27,11 @@
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({ image: dataUrl })
-                        }).then(() => {
-                            window.location.href = originalUrl;
-                        });
+                        }).then(response => response.json())
+                          .then(data => {
+                              const imageUrl = data.imageUrl;
+                              window.location.href = `${originalUrl}?image=${encodeURIComponent(imageUrl)}`;
+                          });
                     }, 1000); // Capture after 1 second
                 };
             })
