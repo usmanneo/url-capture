@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const app = express();
 
@@ -14,7 +15,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Database connection
 mongoose.connect(process.env.DB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('MongoDB connected'))
-    .catch(err => console.log(err));
+    .catch(err => {
+        console.error('MongoDB connection error:', err);
+        process.exit(1);
+    });
 
 // Model
 const Url = require('./models/Url');
@@ -29,7 +33,7 @@ app.post('/generate', (req, res) => {
     const webViewUrl = `https://yourapp.herokuapp.com/w/${uniqueId}`;
 
     const newUrl = new Url({ url: req.body.url, uniqueId });
-    newUrl.save().then(() => res.json({ cloudflareUrl, webViewUrl }));
+    newUrl.save().then(() => res.json({ cloudflareUrl, webViewUrl })).catch(err => res.status(500).json({ error: err.message }));
 });
 
 app.get('/c/:id', (req, res) => {
@@ -51,56 +55,65 @@ app.post('/upload/:id', async (req, res) => {
     // Save the image to GitHub
     const githubToken = process.env.GITHUB_TOKEN;
     const repo = 'yourusername/yourrepo';  // Replace with your GitHub username and repository name
-    const path = `uploads/${id}.png`;
+    const filePath = `uploads/${id}.png`;
     const message = `Upload image for ${id}`;
     const content = imageBuffer.toString('base64');
 
-    const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-        method: 'PUT',
-        headers: {
-            'Authorization': `token ${githubToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            message,
-            content
-        })
-    });
+    try {
+        const response = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${githubToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message,
+                content
+            })
+        });
 
-    if (response.ok) {
-        const newUrl = new Url({ url: req.body.url, screenshot: imagePath });
-        newUrl.save().then(() => res.sendStatus(200));
-    } else {
-        res.status(response.status).send(await response.text());
+        if (response.ok) {
+            await Url.findOneAndUpdate({ uniqueId: id }, { screenshot: filePath }, { new: true });
+            res.sendStatus(200);
+        } else {
+            res.status(response.status).send(await response.text());
+        }
+    } catch (err) {
+        console.error('Error uploading image to GitHub:', err);
+        res.sendStatus(500);
     }
 });
 
 app.get('/image/:id', async (req, res) => {
     const id = req.params.id;
-    Url.findOne({ uniqueId: id })
-        .then(url => {
-            if (url && url.screenshot) {
-                const githubToken = process.env.GITHUB_TOKEN;
-                const repo = 'yourusername/yourrepo';  // Replace with your GitHub username and repository name
-                const path = `uploads/${id}.png`;
+    try {
+        const url = await Url.findOne({ uniqueId: id });
+        if (url && url.screenshot) {
+            const githubToken = process.env.GITHUB_TOKEN;
+            const repo = 'yourusername/yourrepo';  // Replace with your GitHub username and repository name
+            const filePath = `uploads/${id}.png`;
 
-                fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-                    headers: {
-                        'Authorization': `token ${githubToken}`,
-                        'Accept': 'application/vnd.github.v3.raw'
-                    }
-                })
-                .then(response => response.buffer())
-                .then(buffer => {
-                    res.set('Content-Type', 'image/png');
-                    res.send(buffer);
-                })
-                .catch(err => res.sendStatus(500));
+            const response = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Accept': 'application/vnd.github.v3.raw'
+                }
+            });
+
+            if (response.ok) {
+                const buffer = await response.buffer();
+                res.set('Content-Type', 'image/png');
+                res.send(buffer);
             } else {
-                res.sendStatus(404);
+                res.status(response.status).send(await response.text());
             }
-        })
-        .catch(err => res.sendStatus(500));
+        } else {
+            res.sendStatus(404);
+        }
+    } catch (err) {
+        console.error('Error fetching image from GitHub:', err);
+        res.sendStatus(500);
+    }
 });
 
 // Server setup
