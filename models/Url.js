@@ -1,11 +1,32 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const urlSchema = new Schema({
-    originalUrl: { type: String, required: true },
-    uniqueId: { type: String, required: true, unique: true },
-    redirectUrl: { type: String, required: true },
-    imageData: { type: String, default: null } // Add this line
+const Url = sequelize.define('Url', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  originalUrl: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  uniqueId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  redirectUrl: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  imageData: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  }
+}, {
+  tableName: 'urls',
+  timestamps: true
 });
 
-module.exports = mongoose.model('Url', urlSchema);
+module.exports = Url;
