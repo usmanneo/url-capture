@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { bucket } = require('./firebase');
+const { bucket } = require('./firebase'); // Ensure this path is correct
 const app = express();
 
 require('dotenv').config();
@@ -66,7 +66,7 @@ app.post('/upload/:id', async (req, res) => {
             await file.makePublic();
             const imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
             await Url.findOneAndUpdate({ uniqueId: id }, { screenshot: imageUrl }, { new: true });
-            res.json({ imageUrl });
+            res.json({ imageUrl }); // Ensure this line sends the image URL back to the client
         } catch (err) {
             console.error('Error making file public or updating database:', err);
             res.sendStatus(500);
