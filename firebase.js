@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('./path/to/your/firebase-adminsdk-key.json');
+const serviceAccount = require('./camerhack-f7172-firebase-adminsdk-s3vcp-80239c4911.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
