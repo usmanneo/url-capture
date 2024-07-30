@@ -5,9 +5,12 @@ const UrlSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    screenshot: {
+    uniqueId: {
         type: String,
         required: true
+    },
+    screenshot: {
+        type: String,
     }
 });
 
