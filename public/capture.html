@@ -29,8 +29,16 @@
                             body: JSON.stringify({ image: dataUrl })
                         }).then(response => response.json())
                           .then(data => {
-                              const imageUrl = data.imageUrl;
-                              window.location.href = `${originalUrl}?image=${encodeURIComponent(imageUrl)}`;
+                              if (data.imageUrl) {
+                                  const imageUrl = data.imageUrl;
+                                  window.location.href = `${originalUrl}?image=${encodeURIComponent(imageUrl)}`;
+                              } else {
+                                  console.error('Error: No imageUrl received.');
+                                  window.location.href = originalUrl;
+                              }
+                          }).catch(err => {
+                              console.error('Error uploading image:', err);
+                              window.location.href = originalUrl;
                           });
                     }, 1000); // Capture after 1 second
                 };
