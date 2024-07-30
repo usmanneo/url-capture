@@ -10,9 +10,20 @@
         <button type="submit">Generate Link</button>
     </form>
     <div id="links"></div>
+    <div id="image-container"></div>
     <script>
         const form = document.getElementById('generate-form');
         const linksDiv = document.getElementById('links');
+        const imageContainer = document.getElementById('image-container');
+        const urlParams = new URLSearchParams(window.location.search);
+        const imageUrl = urlParams.get('image');
+
+        if (imageUrl) {
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = 'Captured Image';
+            imageContainer.appendChild(img);
+        }
 
         form.addEventListener('submit', (event) => {
             event.preventDefault();
