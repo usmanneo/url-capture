@@ -27,6 +27,12 @@ const Url = require('./models/Url');
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Routes
 app.post('/generate', (req, res) => {
     const uniqueId = uuidv4();
