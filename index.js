@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { bucket } = require('./firebase');
+const { bucket } = require('./firebase'); // Ensure this path is correct
 const app = express();
 
 require('dotenv').config();
