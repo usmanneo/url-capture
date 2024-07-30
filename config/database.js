@@ -1,15 +1,14 @@
-const { Sequelize } = require('sequelize');
+const mongoose = require('mongoose');
+const db = process.env.DB_URI;
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  protocol: 'postgres',
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
+const connectDB = async () => {
+    try {
+        await mongoose.connect(db, { useNewUrlParser: true, useUnifiedTopology: true });
+        console.log('MongoDB connected');
+    } catch (err) {
+        console.error(err.message);
+        process.exit(1);
     }
-  },
-  logging: false,
-});
+};
 
-module.exports = sequelize;
+module.exports = connectDB;
