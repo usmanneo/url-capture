@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
 const app = express();
 
 require('dotenv').config();
@@ -41,39 +42,32 @@ app.get('/c/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'capture.html'));
 });
 
-app.post('/upload/:id', async (req, res) => {
+app.post('/upload/:id', (req, res) => {
     const id = req.params.id;
     const imageData = req.body.image.replace(/^data:image\/png;base64,/, '');
     const imageBuffer = Buffer.from(imageData, 'base64');
-    const githubToken = process.env.GITHUB_TOKEN;
-    const repo = 'usmanneo/url-capture';
-    const filePath = `uploads/${id}.png`;
-    const message = `Upload image for ${id}`;
-    const content = imageBuffer.toString('base64');
+    const filePath = path.join(__dirname, 'public', 'uploads', `${id}.png`);
 
-    try {
-        const response = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message,
-                content
-            })
-        });
-
-        if (response.ok) {
-            await Url.findOneAndUpdate({ uniqueId: id }, { screenshot: filePath }, { new: true });
-            res.sendStatus(200);
+    fs.writeFile(filePath, imageBuffer, (err) => {
+        if (err) {
+            console.error('Error saving image:', err);
+            res.sendStatus(500);
         } else {
-            res.status(response.status).send(await response.text());
+            const imageUrl = `https://${req.headers.host}/uploads/${id}.png`;
+            Url.findOneAndUpdate({ uniqueId: id }, { screenshot: imageUrl }, { new: true })
+                .then(() => res.json({ imageUrl }))
+                .catch(err => {
+                    console.error('Error updating database:', err);
+                    res.sendStatus(500);
+                });
         }
-    } catch (err) {
-        console.error('Error uploading image to GitHub:', err);
-        res.sendStatus(500);
-    }
+    });
+});
+
+app.get('/uploads/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'public', 'uploads', filename);
+    res.sendFile(filePath);
 });
 
 app.get('/image/:id', async (req, res) => {
@@ -81,29 +75,12 @@ app.get('/image/:id', async (req, res) => {
     try {
         const url = await Url.findOne({ uniqueId: id });
         if (url && url.screenshot) {
-            const githubToken = process.env.GITHUB_TOKEN;
-            const repo = 'usmanneo/url-capture';
-            const filePath = `uploads/${id}.png`;
-
-            const response = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
-                headers: {
-                    'Authorization': `token ${githubToken}`,
-                    'Accept': 'application/vnd.github.v3.raw'
-                }
-            });
-
-            if (response.ok) {
-                const buffer = await response.buffer();
-                res.set('Content-Type', 'image/png');
-                res.send(buffer);
-            } else {
-                res.status(response.status).send(await response.text());
-            }
+            res.redirect(url.screenshot);
         } else {
             res.sendStatus(404);
         }
     } catch (err) {
-        console.error('Error fetching image from GitHub:', err);
+        console.error('Error fetching image:', err);
         res.sendStatus(500);
     }
 });
