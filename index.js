@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { bucket } = require('./firebase'); // Ensure this path is correct
+const cloudinary = require('./cloudinary'); // Ensure this path is correct
 const app = express();
 
 require('dotenv').config();
@@ -48,46 +48,23 @@ app.post('/upload/:id', async (req, res) => {
     const imageData = req.body.image.replace(/^data:image\/png;base64,/, '');
     const imageBuffer = Buffer.from(imageData, 'base64');
     const fileName = `${id}.png`;
-    const file = bucket.file(fileName);
 
-    const stream = file.createWriteStream({
-        metadata: {
-            contentType: 'image/png',
-        },
-    });
-
-    stream.on('error', (err) => {
-        console.error('Error uploading to Firebase:', err);
+    try {
+        cloudinary.uploader.upload_stream({ resource_type: 'image', public_id: fileName }, (error, result) => {
+            if (error) {
+                console.error('Error uploading to Cloudinary:', error);
+                return res.sendStatus(500);
+            }
+            const imageUrl = result.secure_url;
+            console.log('Image URL:', imageUrl); // Debug log
+            Url.findOneAndUpdate({ uniqueId: id }, { screenshot: imageUrl }, { new: true })
+                .then(() => res.json({ imageUrl }))
+                .catch(err => res.status(500).json({ error: err.message }));
+        }).end(imageBuffer);
+    } catch (err) {
+        console.error('Error uploading to Cloudinary:', err);
         res.sendStatus(500);
-    });
-
-    stream.on('finish', async () => {
-        try {
-            await file.makePublic();
-            const imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-            await Url.findOneAndUpdate({ uniqueId: id }, { screenshot: imageUrl }, { new: true });
-            res.json({ imageUrl }); // Ensure this line sends the image URL back to the client
-        } catch (err) {
-            console.error('Error making file public or updating database:', err);
-            res.sendStatus(500);
-        }
-    });
-
-    stream.end(imageBuffer);
-});
-
-app.get('/uploads/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const file = bucket.file(filename);
-    file.getSignedUrl({
-        action: 'read',
-        expires: '03-09-2491'
-    }).then(signedUrls => {
-        res.redirect(signedUrls[0]);
-    }).catch(err => {
-        console.error('Error getting signed URL:', err);
-        res.sendStatus(500);
-    });
+    }
 });
 
 app.get('/image/:id', async (req, res) => {
