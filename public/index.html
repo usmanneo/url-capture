@@ -1,35 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>URL Capture</title>
+    <title>Home Page</title>
 </head>
 <body>
-  <form id="urlForm">
-    <input type="text" id="originalUrl" placeholder="Enter URL" required>
-    <input type="text" id="redirectUrl" placeholder="Enter Redirect URL" required>
-    <button type="submit">Generate Link</button>
-  </form>
-  <div id="result"></div>
-  <script>
-    document.getElementById('urlForm').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const originalUrl = document.getElementById('originalUrl').value;
-      const redirectUrl = document.getElementById('redirectUrl').value;
-      const response = await fetch('/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ originalUrl, redirectUrl })
-      });
-      const result = await response.json();
-      document.getElementById('result').innerHTML = `
-        Cloudflare URL: <a href="${result.cloudflareUrl}" target="_blank">${result.cloudflareUrl}</a><br>
-        WebView URL: <a href="${result.webViewUrl}" target="_blank">${result.webViewUrl}</a>
-      `;
-    });
-  </script>
+    <h1>Welcome to URL Capture</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="snap">Capture</button>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <script>
+        // Access the camera
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const snap = document.getElementById('snap');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error('Error accessing the camera', err);
+            });
+
+        snap.addEventListener('click', () => {
+            context.drawImage(video, 0, 0, 640, 480);
+            const dataUrl = canvas.toDataURL('image/png');
+            // Send the captured image to the server
+            fetch('/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: dataUrl })
+            });
+        });
+    </script>
 </body>
 </html>
