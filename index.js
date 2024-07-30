@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { bucket } = require('./firebase'); // Ensure this path is correct
+const { bucket } = require('./firebase');
 const app = express();
 
 require('dotenv').config();
@@ -33,7 +33,9 @@ app.post('/generate', (req, res) => {
     const captureUrl = `https://${req.headers.host}/c/${uniqueId}?url=${encodeURIComponent(originalUrl)}`;
 
     const newUrl = new Url({ url: originalUrl, uniqueId });
-    newUrl.save().then(() => res.json({ captureUrl })).catch(err => res.status(500).json({ error: err.message }));
+    newUrl.save()
+        .then(() => res.json({ captureUrl }))
+        .catch(err => res.status(500).json({ error: err.message }));
 });
 
 app.get('/c/:id', (req, res) => {
