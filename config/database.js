@@ -1,21 +1,30 @@
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  protocol: 'postgres',
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
-    }
-  }
+  dialect: 'sqlite',
+  logging: false,
 });
 
-sequelize.authenticate().then(() => {
-  console.log('Connection has been established successfully.');
-}).catch(err => {
-  console.error('Unable to connect to the database:', err);
+const URL = sequelize.define('URL', {
+  originalUrl: {
+    type: Sequelize.STRING,
+    allowNull: false,
+  },
+  uniqueId: {
+    type: Sequelize.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  redirectUrl: {
+    type: Sequelize.STRING,
+    allowNull: false,
+  },
+  imageData: {
+    type: Sequelize.TEXT,
+    allowNull: true,
+  },
 });
 
-module.exports = sequelize;
+sequelize.sync();
+
+module.exports = { sequelize, URL };
