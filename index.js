@@ -45,9 +45,6 @@ app.post('/upload/:id', async (req, res) => {
     const id = req.params.id;
     const imageData = req.body.image.replace(/^data:image\/png;base64,/, '');
     const imageBuffer = Buffer.from(imageData, 'base64');
-    const imagePath = `uploads/${id}.png`;
-    
-    // Save the image to GitHub
     const githubToken = process.env.GITHUB_TOKEN;
     const repo = 'usmanneo/url-capture';
     const filePath = `uploads/${id}.png`;
