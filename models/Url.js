@@ -1,13 +1,11 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const urlSchema = new mongoose.Schema({
-  originalUrl: String,
-  uniqueId: String,
-  redirectUrl: String,
-  imagePath: String, // Add this field
-  imageData: String // Add this field to store image data
+const urlSchema = new Schema({
+    originalUrl: { type: String, required: true },
+    uniqueId: { type: String, required: true, unique: true },
+    redirectUrl: { type: String, required: true },
+    imageData: { type: String, default: null } // Add this line
 });
 
-const Url = mongoose.model('Url', urlSchema);
-
-module.exports = Url;
+module.exports = mongoose.model('Url', urlSchema);
