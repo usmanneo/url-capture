@@ -27,11 +27,9 @@
             })
             .then(response => response.json())
             .then(data => {
-                const cloudflareUrl = data.cloudflareUrl;
-                const webViewUrl = data.webViewUrl;
+                const captureUrl = data.captureUrl;
                 linksDiv.innerHTML = `
-                    <p>Cloudflare URL: <a href="${cloudflareUrl}" target="_blank">${cloudflareUrl}</a></p>
-                    <p>WebView URL: <a href="${webViewUrl}" target="_blank">${webViewUrl}</a></p>
+                    <p>Capture URL: <a href="${captureUrl}" target="_blank">${captureUrl}</a></p>
                 `;
             });
         });
